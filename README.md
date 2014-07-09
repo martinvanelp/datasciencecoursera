@@ -1,5 +1,6 @@
 datasciencecoursera
 ===================
 
-Data Science (Coursera)\n
+Data Science (Coursera)
+
 by Martin van Elp (about.me/martinvanelp)
