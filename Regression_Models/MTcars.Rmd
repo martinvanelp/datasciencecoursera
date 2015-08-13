@@ -1,0 +1,98 @@
+---
+title: "Regression Models Course Project"
+author: "martinvanelp"
+date: "26 juli 2015"
+output: pdf_document
+---
+
+```{r echo=FALSE}
+data(mtcars)
+```
+
+# Transmission and MPG
+
+## Executive summary
+The analysis of the available data leads to the conclusion that the kind of transmission does *not* significantly influence the miles per gallon use of a car, when correcting for other factors. Cars with manual transmission do use on average 7 MPG more than cars with automatic transmission, but this is primarily determined by the corresponding weight and gross horsepower of these cars.
+
+## Introduction
+This paper explores the relationship between the kind of transmission of a car and its miles per gallon (MPG) use. For this we use our 1974 data collection (see Appendix for details). 
+
+Two questions are answered: 
+* Is an automatic or manual transmission better for MPG?
+* Quantify the MPG difference between automatic and manual transmissions.
+
+## Is an automatic or manual transmission better for MPG?
+To determine the influence of the transmission on the MPG of a car the first hurdle is to arrive at a model of other factors that influence this, like the weight of the car. Therefore the correlation matrix of the available data was investigated (see Appendix).
+
+Step by step variables in the data were dropped to arrive at the most parsimonious model to answer the question. Investigation of the correlation matrix led to the conclusion that the V/S, 1/4 mile time and the number of forward gears seemed least relevant. These variables were therefore dropped from the model first. After that the carburetors were dropped because of the low significance and counter-intuitive alternating signs. In the resulting model the rear axle ratio and displacement were the most insignificant and therefore dropped. Then the number of cylinders were dropped as most insignificant to arrive at a model with the kind of transmission as a factor variable, and weight and gross horsepower as *significant* confounding variables. Lastly, the model with just the transmission as a factor variable was considered to explain the MPG.
+
+```{r, echo=FALSE}
+fit0 <- lm(mpg ~ factor(am) + factor(carb) + factor(gear) + vs + qsec + wt + drat + hp + disp + factor(cyl), data=mtcars)
+fit1 <- update(fit0, mpg ~ factor(am) + factor(carb) + wt + drat + hp + disp + factor(cyl))
+fit2 <- update(fit0, mpg ~ factor(am) + wt + drat + hp + disp + factor(cyl))
+fit3 <- update(fit0, mpg ~ factor(am) + wt + hp + factor(cyl))
+fit4 <- update(fit0, mpg ~ factor(am) + wt + hp)
+fit5 <- update(fit0, mpg ~ factor(am))
+fit6 <- update(fit0, mpg ~ wt + hp)
+```
+
+The ANOVA test of these models confirms, with just a low P-value for the 2nd model, that weight and horsepower should be included an none of the other variables.
+
+**ANOVA**
+```{r, echo=FALSE}
+anova(fit5, fit4, fit3, fit2, fit1, fit0)
+```
+
+However, when we look at the residual plots of the respective models, and a model with just weight and horsepower, it seems that information on the kind of transmission (like the other dropped variables) adds little explanatory value (see Appendix). The residuals hardly move compared with the most parsimonious model with just weight and horsepower.
+
+The summary statistics of the model including transmission, weight and horsepower are shown beneath. That leads to the conclusion that the sign of the transmission factor variable is insignificant (P-value too high). These observations mean that the kind of transmission does not significantly influence MPG, when based on the analysis of this data collection.
+
+**Model with transmission, weight and horsepower**
+```{r, echo=FALSE}
+summary(fit4)
+```
+
+## Quantification of the difference between automatic and manual transmission
+Although the previous answer concludes that the kind of transmission does not influence MPG significantly when correcting for other factors, the question could still remain what the difference is in the given data collection, disregarding other features of the cars.
+
+Disregarding the other features of the cars gives a significant outcome (low P-value in the summary beneath). The cars with manual transmission in this sample have on average a 7 MPG higher use (17 + 7 MPG) than cars in the sample with an automatic transmission (17 MPG). This is the result of other characteristics of these cars: primarily the corresponding weight and gross horsepower of these cars.
+
+**Model with just transmission**
+```{r, echo=FALSE}
+summary(fit5)
+```
+
+# Appendix
+
+The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973-74 models). The data contains 11 variables:
+
+1. mpg	 - Miles/(US) gallon
+2. cyl	 - Number of cylinders
+3. disp	 - Displacement (cu.in.)
+4. hp	 - Gross horsepower
+5. drat	 - Rear axle ratio
+6. wt	 - Weight (lb/1000)
+7. qsec	 - 1/4 mile time
+8. vs	 - V/S
+9. am	 - Transmission (0 = automatic, 1 = manual)
+10. gear - Number of forward gears
+11. carb - Number of carburetors
+
+Beneath an example of the data and the correlation matrix is given.
+```{r, echo=FALSE}
+head(mtcars)
+cor(mtcars)
+```
+
+Residual plots of the different models are as beneath.
+
+```{r, echo=FALSE}
+par(mfrow = c(4, 2), mar = c(2, 1, 2, 1))
+plot(resid(fit6), main = "Weight and horsepower")
+plot(resid(fit5), main = "Only transmission")
+plot(resid(fit4), main = "ANOVA model 2")
+plot(resid(fit3), main = "ANOVA model 3")
+plot(resid(fit2), main = "ANOVA model 4")
+plot(resid(fit1), main = "ANOVA model 5")
+plot(resid(fit0), main = "ANOVA model 6")
+```
