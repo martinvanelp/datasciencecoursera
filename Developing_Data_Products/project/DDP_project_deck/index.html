@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Child height prediction</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Child height prediction">
+  <meta name="author" content="Martin van Elp">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/highlighters/prettify/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="http://slidifylibraries2.googlecode.com/git/inst/libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/js/slides" 
+    src="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Child height prediction</h1>
+    <h2>by using parent's height</h2>
+    <p>Martin van Elp<br/>economist / statistical researcher</p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Data used</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>The data set used to make the prediction application contains the height in inches of combinations of parent and child. This makes it possible for the app to use the height of the parent to predict the height of that parent&#39;s child.</p>
+
+<p>From the data documentation:</p>
+
+<p>&quot;Data set from tabulated data set used by Galton in 1885 to study the relationship between a parent&#39;s height and their childrens. In the data there are 205 different parents and 928 children.&quot;</p>
+
+<p>Source: UsingR package in R.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>Overview of the data</h2>
+  </hgroup>
+  <article data-timings="">
+    <p><img src="data:image/png;base64,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" alt="plot of chunk unnamed-chunk-1"> </p>
+
+<p>This graph indicates a positive correlation between the height of child and parent.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>Parent height as predictor</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>The table beneath shows that the parent&#39;s height (parent) indeed has a significant positive correlation with the child&#39;s height (very low P-value). Hence it can be used as a predictor.</p>
+
+<pre><code>##               Estimate     Pr(&gt;|t|)
+## (Intercept) 23.9415302 6.536845e-17
+## parent       0.6462906 1.732509e-49
+</code></pre>
+
+<p>In other words: if the parent is 1 inch taller, the child is expected to be 0.65 inches taller.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>Lastly: gender matters</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>From the data documentation:
+&quot;The midparent&#39;s height is an average of the fathers height and <strong>1.08 times the mother&#39;s</strong>.&quot;</p>
+
+<p>Therefore the app also distinguishes between the gender of the parent for the prediction. When the user enters the height of a female parent, this gets multiplied by 1.08 by the prediction model.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Data used'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Overview of the data'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='Parent height as predictor'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Lastly: gender matters'>
+         4
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- Google Prettify -->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/188.0.0/prettify.js"></script>
+  <script src='http://slidifylibraries2.googlecode.com/git/inst/libraries/highlighters/prettify/js/lang-r.js'></script>
+  <script>
+    var pres = document.getElementsByTagName("pre");
+    for (var i=0; i < pres.length; ++i) {
+      pres[i].className = "prettyprint linenums";
+    }
+    prettyPrint();
+  </script>
+  <!-- End Google Prettify --> 
+  </html>
