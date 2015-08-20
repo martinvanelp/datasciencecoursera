@@ -53,7 +53,7 @@ In other words: if the parent is 1 inch taller, the child is expected to be `r r
 ## Lastly: gender matters
 
 From the data documentation:
+
 "The midparent's height is an average of the fathers height and **1.08 times the mother's**."
 
 Therefore the app also distinguishes between the gender of the parent for the prediction. When the user enters the height of a female parent, this gets multiplied by 1.08 by the prediction model.
-
