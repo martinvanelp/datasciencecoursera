@@ -46,7 +46,7 @@ names(training)
 
 trainingIL <- training[, c(1, 58:69)]
 
-preProc <- preProcess(trainingIL[,-1], method = "pca", thresh = 0.8)
+preProc <- preProcess(trainingIL[,-1], method = "pca", thresh = 0.9)
 preProc$rotation
 
 # Question 4
@@ -77,7 +77,7 @@ A1 <- C1$overall[1]
 
 ## do similar steps with the caret package
 modelFit <- train(diagnosis ~ ., method = "glm", preProcess = "pca", 
-                  data = training, trControl = trainControl(preProcOptions = list(thresh = 0.8)))
+                  data = trainingIL, trControl = trainControl(preProcOptions = list(thresh = 0.8)))
 
 predictions2 <- predict(modelFit, testingIL)
 C2 <- confusionMatrix(predictions2, testingIL$diagnosis)
