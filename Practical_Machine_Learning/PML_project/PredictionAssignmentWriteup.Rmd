@@ -110,7 +110,7 @@ confusionMatrix(treeTrainPred, training$classe)
 ```
 
 ## Random forest
-When the random forest algorithm is applied the results are clearly better. Most activities get classified correctly as the output of the final model beneath shows. The estimated error rate is 8%.
+When the random forest algorithm is applied the results are clearly better. Most activities get classified correctly as the output of the final model beneath shows. The estimated error rate is about 8%.
 ```{r echo=FALSE}
 rfFit$finalModel
 ```
@@ -126,10 +126,4 @@ The random forest is applied to the validation set that was set aside earlier, t
 ```{r echo=FALSE}
 rfValidPred <- predict(rfFit, validation)
 confusionMatrix(rfValidPred, validation$classe)
-```
-
-# Predictions
-```{r echo=FALSE}
-rfTestPred <- predict(rfFit, testing)
-rfTestPred
 ```
