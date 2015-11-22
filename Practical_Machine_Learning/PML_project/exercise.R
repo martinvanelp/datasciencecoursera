@@ -84,3 +84,44 @@ pml_write_files = function(x){
 }
 
 pml_write_files(answers)
+
+# better model
+InTrain<-createDataPartition(y=training$classe,p=0.3,list=FALSE)
+trainingX<-training[InTrain,]
+
+rf_model<-train(classe~.,data=trainingX,method="rf",
+                trControl=trainControl(method="cv",number=5),
+                prox=TRUE,allowParallel=TRUE)
+
+require(caret)
+require(ggplot2)
+require(randomForest)
+
+training_URL<-"http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_URL<-"http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+training<-read.csv(training_URL,na.strings=c("NA",""))
+test<-read.csv(test_URL,na.strings=c("NA",""))
+
+training<-training[,7:160]
+test<-test[,7:160]
+
+mostly_data<-apply(!is.na(training),2,sum)>19621
+training<-training[,mostly_data]
+test<-test[,mostly_data]
+dim(training)
+
+InTrain<-createDataPartition(y=training$classe,p=0.3,list=FALSE)
+training1<-training[InTrain,]
+
+rf_model<-train(classe~.,data=training1,method="rf",
+                trControl=trainControl(method="cv",number=5),
+                prox=TRUE,allowParallel=TRUE)
+print(rf_model)
+
+print(rf_model$finalModel)
+
+## predictions
+rfTestPred2 <- predict(rf_model, test)
+answers <- rfTestPred2
+
+pml_write_files(answers)
