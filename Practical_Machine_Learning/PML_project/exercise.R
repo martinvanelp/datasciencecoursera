@@ -55,13 +55,19 @@ library(randomForest)
 #cor <- sapply(exercise[,-153], 
 #              function(x) hetcor(x, exercise[,153])$correlations[2])
 
-# trying tree (final Accuracy = 0.5032505)
+# trying tree (final Accuracy = 0.5093939)
 set.seed(1234)
 treeFit <- train(classe ~ ., data = exercise, method = "rpart")
 fancyRpartPlot(treeFit$finalModel)
 treeFit
 
+trainPred <- predict(treeFit, exercise)
+
+confusionMatrix(trainPred, exercise$classe)
+
+
 # trying random forest
 set.seed(1234)
 rfFit <- train(classe ~ ., data = exercise, method = "rf")
 rfFit$finalModel
+

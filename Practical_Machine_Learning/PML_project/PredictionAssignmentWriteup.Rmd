@@ -1,0 +1,135 @@
+---
+title: "Predicting exercise moves"
+author: "@martinvanelp"
+date: "22 november 2015"
+output: html_document
+---
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+##
+## ASSIGNMENT PRACTICAL MACHINE LEARNING
+##
+
+## INFO ##
+# In this project, your goal will be to use data from accelerometers on 
+# the belt, forearm, arm, and dumbell of 6 participants. They were asked 
+# to perform barbell lifts correctly and incorrectly in 5 different ways. 
+# More information is available from the website here: 
+# http://groupware.les.inf.puc-rio.br/har 
+# (see the section on the Weight Lifting Exercise Dataset). 
+
+## TASK ##
+# The goal of your project is to predict the manner in which they did the
+# exercise. This is the "classe" variable in the training set. You may use
+# any of the other variables to predict with. You should create a report 
+# describing how you built your model, how you used cross validation, what 
+# you think the expected out of sample error is, and why you made the 
+# choices you did. You will also use your prediction model to predict 20 
+# different test cases. 
+
+library(caret)
+library(polycor)
+library(rattle)
+library(rpart)
+library(randomForest)
+
+set.seed(1234)
+
+# DATA
+# fetch training and test data
+if (!file.exists("data")) { dir.create("data") }
+if (!file.exists("./data/pml-training.csv")) {
+        fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+        download.file(fileUrl, destfile = "./data/pml-training.csv")
+}
+if (!file.exists("./data/pml-testing.csv")) {
+        fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+        download.file(fileUrl, destfile = "./data/pml-testing.csv")
+}
+
+# load data
+trainingIO <- read.csv("./data/pml-training.csv")
+testingIO  <-  read.csv("./data/pml-testing.csv")
+
+# separating predictors (usable data: few missing etc.) and outcome 
+# (classe) from the other input, after exploratory data analysis
+training1 <- as.data.frame(trainingIO[,8:160])
+testing   <-  as.data.frame(testingIO[,8:160])
+
+# subset of data for exploration
+subset <- training1[floor(runif(100, min = 1, max  = 19623)),]
+
+# drop useless columns
+training1 <- training1[, -c(5:29, 43:52,
+                          62:76, 80:94, 96:105, 118:132, 134:143)]
+testing   <-   testing[, -c(5:29, 43:52, 
+                          62:76, 80:94, 96:105, 118:132, 134:143)]
+
+# create validation set
+set.seed(1234)
+inTrain <- createDataPartition(y=training1$classe,
+                               p=0.7, list=FALSE)
+training <- training1[inTrain,]
+validation <- training1[-inTrain,]
+
+# MODELLING
+# trying tree (final Accuracy = 0.5093939)
+set.seed(1234)
+treeFit <- train(classe ~ ., data = training, method = "rpart")
+
+# trying random forest
+set.seed(1234)
+inTrain <- createDataPartition(y=training$classe,
+                               p=0.10, list=FALSE)
+rfTraining <- training[inTrain,]
+
+rfFit <- train(classe ~ ., data = rfTraining, method = "rf", prox=TRUE)
+```
+
+The goal of this project is to predict the manner in which 6 participants performed barbell lifts. The did this correctly and incorrectly in 5 different ways. For this prediction data from accelerometers on the belt, forearm, arm, and dumbell of the 6 participants is used. 
+
+# Model description
+The dataset contains many different variables and the eventual goal is to classify the ways in which barbell lifts were performed. This means that an algorithm that is intended for classifying is chosen. In the analysis two algorithms from the caret package were tried: rpart and rf (random forest).
+
+## Data cleaning
+After exploring the data several columns were dropped that neither contained the classe-variable or the predictors. Then upon further investigation, from these predictor variables more columns were dropped when they contained little or no values.
+
+## Validation set
+30% of the training set is set aside as a validation set to determine the out of sample error later.
+
+## Rpart
+The plot of the Rpart tree shows that classe A and E are predicted rather well. It also shows that the model has trouble classifying the other classes.
+```{r echo=FALSE}
+fancyRpartPlot(treeFit$finalModel)
+```
+
+The confusion matrix beneath confirms the impression that the Rpart model is only good for two classes. The total accuracy, even within the training set, is rather low, classes B and C get classified wrongly often, and classe D is never predicted.
+```{r echo=FALSE}
+treeTrainPred <- predict(treeFit, training)
+confusionMatrix(treeTrainPred, training$classe)
+```
+
+## Random forest
+When the random forest algorithm is applied the results are clearly better. Most activities get classified correctly as the output of the final model beneath shows. The estimated error rate is 8%.
+```{r echo=FALSE}
+rfFit$finalModel
+```
+
+The caveat with the random forest algorithm is slow processing time. Which is why in training the model only 1376 randomly chosen observations  were used. This is 10% of the remaining data set, after setting aside the validation set. 
+
+## Choice of model
+The random forest algorithm has far better results, when it comes to predicting the right classe in the training set. It is therefore selected as the model to cross validate, although a random forest is hard to interpret.
+
+# Cross validation
+The random forest is applied to the validation set that was set aside earlier, to find the expected out of sample error. The accuracy is basicly close to the estimated error rate before. Moreover, the Kappa statistic is higher than 0.80 which means the classifier is almost perfect, see [Wikipedia](https://en.wikipedia.org/wiki/Cohen%27s_kappa).
+
+```{r echo=FALSE}
+rfValidPred <- predict(rfFit, validation)
+confusionMatrix(rfValidPred, validation$classe)
+```
+
+# Predictions
+```{r echo=FALSE}
+rfTestPred <- predict(rfFit, testing)
+rfTestPred
+```
