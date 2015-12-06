@@ -109,9 +109,10 @@ testing = concrete[-inTrain,]
 
 library(e1071)
 library(caret)
+library(forecast)
 
 set.seed(325)
 
 fit <- train(CompressiveStrength ~ ., data = training, method = "svmRadial")
 pred <- predict(fit, testing)
-accuracy(prediction, testing$CompressiveStrength)
+accuracy(pred, testing$CompressiveStrength)
