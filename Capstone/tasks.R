@@ -1,4 +1,8 @@
-## Task 0
+##############
+##          ##
+##  Task 0  ##
+##          ##
+##############
 
 # DATASET
 # This is the training data to get you started that will be the basis for most of the capstone. You must download the data from the Coursera site and not from external websites to start. Your original exploration of the data and modeling steps will be performed on this data set. Later in the capstone, if you find additional data sets that may be useful for building your model you may use them.
@@ -31,6 +35,14 @@ if (!file.exists("final")) {
 # 4. What are the common steps in natural language processing?
 # 5. What are some common issues in the analysis of text data?
 # 6. What is the relationship between NLP and the concepts you have learned in the Specialization?
+
+# ANSWERS
+# 1. big files with lines of text
+# 2. blogs, news websites, twitter
+# 3. project Gutenberg
+# 4. make your text machine readable, make the content quantifiable
+# 5. typos, synonyms, stemming
+# 6. NLP is a specific form of data science, applied to text
 
 library(tm)
 
