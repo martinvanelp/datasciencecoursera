@@ -45,10 +45,39 @@ if (!file.exists("final")) {
 # 6. NLP is a specific form of data science, applied to text
 
 library(tm)
+library(caret)
+library(SnowballC)
 
-# first try to "simply" load the data and apply some {tm}-functions
-doc    <- readLines("final/en_US/en_US.twitter.txt")
-vs     <- VectorSource(text)
-elem   <- getElem(stepNext(vs))
-result <- readPlain(elem, "en", "id1")
-meta(result)
+language <- "en_US"
+
+# load all documents for a language
+filepath <- paste(getwd(), "/final/", language, sep = "")
+texts    <- Corpus(DirSource(filepath), 
+                   readerControl = 
+                           list(reader = readPlain, 
+                                language = language, 
+                                load = TRUE)
+                   )
+
+# focus on Twitter first, with workaround
+con <- file(paste(getwd(), "/final/", language, 
+                  "/", language, ".twitter.txt", sep = ""))
+doc    <- readLines(con, n = 1000)
+close(con)
+
+# vs     <- VectorSource(doc)
+# elem   <- getElem(stepNext(vs))
+# result <- readPlain(elem, "en", "id1")
+# result$content  
+
+set.seed(1234)
+inTrain  <- sample(1:length(doc), 0.7 * length(doc))
+
+training <- doc[inTrain]
+testing  <- doc[-inTrain]
+
+vs     <- VectorSource(training)
+elem   <- pGetElem(vs)
+result <- readPlain(elem[1], language, "training")
+
+
