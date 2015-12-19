@@ -1,3 +1,7 @@
+# NOTES
+# Packages to consider: Rweka (for Ngrams), RTextTools (for Analysis)
+# Other word sources: Project Gutenberg, Wordnet
+
 ##############
 ##          ##
 ##  Task 0  ##
@@ -39,16 +43,40 @@ if (!file.exists("final")) {
 # ANSWERS
 # 1. big files with lines of text
 # 2. blogs, news websites, twitter
-# 3. project Gutenberg
+# 3. project Gutenberg, Princeton Wordnet
 # 4. make your text machine readable, make the content quantifiable
 # 5. typos, synonyms, stemming
 # 6. NLP is a specific form of data science, applied to text
 
+##############
+##          ##
+##  Task 1  ##
+##          ##
+##############
+
+# TASKS TO ACCOMPLISH
+# 
+# 1. Tokenization - identifying appropriate tokens such as words, punctuation, and numbers. Writing a function that takes a file as input and returns a tokenized version of it.
+# 2. Profanity filtering - removing profanity and other words you do not want to predict.
+
+library(dplyr)
 library(tm)
 library(caret)
 library(SnowballC)
+library(openNLP)
+library(RWeka)
 
 language <- "en_US"
+
+# prepare other constants
+lang_S   <- strsplit(language, split = "_")[[1]][1]
+
+# Profanity word list
+#      sources for profanity word list:
+#      - https://gist.github.com/ryanlewis/a37739d710ccdb4b406d
+con <- file("profanity.txt", open = "r")
+profanity <- readLines(con)
+close(con)
 
 # load all documents for a language
 filepath <- paste(getwd(), "/final/", language, sep = "")
@@ -61,8 +89,8 @@ texts    <- Corpus(DirSource(filepath),
 
 # focus on Twitter first, with workaround
 con <- file(paste(getwd(), "/final/", language, 
-                  "/", language, ".twitter.txt", sep = ""))
-doc    <- readLines(con, n = 1000)
+                  "/", language, ".twitter.txt", sep = ""), open = "r")
+doc    <- readLines(con, n = 2000)
 close(con)
 
 # vs     <- VectorSource(doc)
@@ -76,8 +104,27 @@ inTrain  <- sample(1:length(doc), 0.7 * length(doc))
 training <- doc[inTrain]
 testing  <- doc[-inTrain]
 
-vs     <- VectorSource(training)
-elem   <- pGetElem(vs)
-result <- readPlain(elem[1], language, "training")
+# turn training data into corpus
+trainVS   <- VectorSource(training)
+trainDocs <- Corpus(trainVS, readerControl = 
+                            list(reader = readPlain, 
+                                 language = lang_S, 
+                                 load = TRUE))
 
+# remove profanity, and for that convert to lower case
+trainDocs <- tm_map(trainDocs, content_transformer(tolower))
+trainDocs <- tm_map(trainDocs, removeWords, profanity)
 
+# first steps
+trainDTM  <- DocumentTermMatrix(trainDocs)
+trainCS   <- colSums(inspect(removeSparseTerms(trainDTM, 0.95)))
+sort(trainCS, decreasing = TRUE)
+
+# check profanity presence
+sort(colSums(inspect(DocumentTermMatrix(trainDocs, list(dictionary = profanity)))))
+
+# tokenize
+trainTDM1 <- TermDocumentMatrix(trainDocs, 
+                               control = list(tokenize = NGramTokenizer))
+trainTDM2 <- TermDocumentMatrix(trainDocs, 
+                               control = list(tokenize = tokenize))
