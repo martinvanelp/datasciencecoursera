@@ -2,6 +2,9 @@
 # Packages to consider: Rweka (for Ngrams), RTextTools (for Analysis)
 # Other word sources: Project Gutenberg, Wordnet
 
+# quickfix
+setwd("C:/Users/Martin/Box Sync/Programming/GitHub/datasciencecoursera/Capstone")
+
 ##############
 ##          ##
 ##  Task 0  ##
@@ -63,7 +66,7 @@ library(dplyr)
 library(tm)
 library(caret)
 library(SnowballC)
-library(openNLP)
+library(rJava)
 library(RWeka)
 
 language <- "en_US"
@@ -90,7 +93,7 @@ texts    <- Corpus(DirSource(filepath),
 # focus on Twitter first, with workaround
 con <- file(paste(getwd(), "/final/", language, 
                   "/", language, ".twitter.txt", sep = ""), open = "r")
-doc    <- readLines(con, n = 2000)
+doc    <- readLines(con, n = 100000)
 close(con)
 
 # vs     <- VectorSource(doc)
@@ -115,16 +118,118 @@ trainDocs <- Corpus(trainVS, readerControl =
 trainDocs <- tm_map(trainDocs, content_transformer(tolower))
 trainDocs <- tm_map(trainDocs, removeWords, profanity)
 
+# ?gsub + a loop could be an alternative to remove profanity
+
 # first steps
 trainDTM  <- DocumentTermMatrix(trainDocs)
-trainCS   <- colSums(inspect(removeSparseTerms(trainDTM, 0.95)))
-sort(trainCS, decreasing = TRUE)
+trainCS   <- colSums(inspect(removeSparseTerms(trainDTM, 0.995)))
 
 # check profanity presence
 sort(colSums(inspect(DocumentTermMatrix(trainDocs, list(dictionary = profanity)))))
 
 # tokenize
-trainTDM1 <- TermDocumentMatrix(trainDocs, 
+trainDTMt <- DocumentTermMatrix(trainDocs, 
                                control = list(tokenize = NGramTokenizer))
-trainTDM2 <- TermDocumentMatrix(trainDocs, 
-                               control = list(tokenize = tokenize))
+trainCSt  <- colSums(inspect(removeSparseTerms(trainDTMt, 0.995)))
+sort(trainCSt, decreasing = TRUE)
+
+##############
+##          ##
+##  QUIZ 1  ##
+##          ##
+##############
+
+library(dplyr)
+library(tm)
+library(caret)
+library(SnowballC)
+library(rJava)
+library(RWeka)
+
+language <- "en_US"
+lang_S   <- strsplit(language, split = "_")[[1]][1]
+
+document <- ".twitter.txt"
+con <- file(paste(getwd(), "/final/", language, 
+                  "/", language, document, sep = ""), open = "r")
+doc    <- readLines(con)
+close(con)
+
+# The en_US.twitter.txt has how many lines of text?
+length(doc)
+
+# What is the length of the longest line seen in any of the three en_US data sets?
+Nchar <- lapply(doc, nchar)
+NcharM <- as.numeric(Nchar)
+head(sort(NcharM, decreasing=TRUE))
+
+# In the en_US twitter data set, if you divide the number of lines where the word "love" (all lowercase) occurs by the number of lines the word "hate" (all lowercase) occurs, about what do you get?
+length(doc[grep("* love *", doc)]) / length(doc[grep("* hate *", doc)])
+
+# The one tweet in the en_US twitter data set that matches the word "biostats" says what?
+doc[grep("*biostats*", doc)]
+
+# How many tweets have the exact characters "A computer once beat me at chess, but it was no match for me at kickboxing". (I.e. the line matches those characters exactly.)
+doc[grep("A computer once beat me at chess, but it was no match for me at kickboxing", doc)]
+
+##############
+##          ##
+##  Task 2  ##
+##          ##
+##############
+
+# TASKS TO ACCOMPLISH
+# 
+# 1. Exploratory analysis - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora. 
+# 2. Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.
+
+# QUESTIONS TO CONSIDER
+#
+# 1. Some words are more frequent than others - what are the distributions of word frequencies? 
+# 2. What are the frequencies of 2-grams and 3-grams in the dataset? 
+# 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
+# 4. How do you evaluate how many of the words come from foreign languages? 
+# 5. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
+
+plot(sort(trainCS, decreasing = TRUE))
+
+length(trainCS[!(names(trainCS) %in% stopwords("en"))])
+
+# tokenize
+BiGramTokenizer <- function(x) 
+        unlist(lapply(ngrams(words(x), 2), 
+                      paste, collapse = " "), use.names = FALSE)
+TriGramTokenizer <- function(x) 
+        unlist(lapply(ngrams(words(x), 3), 
+                      paste, collapse = " "), use.names = FALSE)
+
+trainDTMb <- DocumentTermMatrix(trainDocs, 
+                                control = list(removePunctuation = TRUE,
+                                               tokenize = BiGramTokenizer))
+trainCSb  <- colSums(inspect(removeSparseTerms(trainDTMb, 0.999)))
+
+trainDTMt <- DocumentTermMatrix(trainDocs, 
+                                control = list(removePunctuation = TRUE,
+                                               tokenize = TriGramTokenizer))
+trainCSt  <- colSums(inspect(removeSparseTerms(trainDTMt, 0.999)))
+
+trainPlot <- head(sort(trainCSb, decreasing = TRUE),50)
+
+plot(trainPlot,
+     xlab = "Trigrams",
+     ylab = "Frequency in 100k-line sample")
+text(1:length(trainPlot), 
+     trainPlot, names(trainPlot), cex=0.6, pos=4, col="blue")
+
+as.matrix(trainPlot)
+
+trainPlot <- head(sort(trainCSt, decreasing = TRUE),50)
+
+plot(trainPlot[-1],
+     xlab = "Trigrams",
+     ylab = "Frequency in 100k-line sample")
+text(1:length(trainPlot[-1]), 
+     trainPlot[-1], names(trainPlot[-1]), cex=0.6, pos=4, col="blue")
+
+as.matrix(trainPlot)
+
