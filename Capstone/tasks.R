@@ -183,17 +183,15 @@ doc[grep("A computer once beat me at chess, but it was no match for me at kickbo
 # 1. Exploratory analysis - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora. 
 # 2. Understand frequencies of words and word pairs - build figures and tables to understand variation in the frequencies of words and word pairs in the data.
 
-# QUESTIONS TO CONSIDER
-#
-# 1. Some words are more frequent than others - what are the distributions of word frequencies? 
-# 2. What are the frequencies of 2-grams and 3-grams in the dataset? 
-# 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
-# 4. How do you evaluate how many of the words come from foreign languages? 
-# 5. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
-
-plot(sort(trainCS, decreasing = TRUE))
-
-length(trainCS[!(names(trainCS) %in% stopwords("en"))])
+trainCSw  <- sort(trainCS[!(names(trainCS) %in% stopwords("en"))],
+                  decreasing = TRUE)
+trainPlot <- head(trainCSw,50)
+plot(trainPlot,
+     xlab = "Single words (excluding \"stopwords\")",
+     ylab = "Frequency in 100k-line sample")
+text(1:length(trainPlot), 
+     trainPlot, names(trainPlot), cex=0.6, pos=4, col="blue")
+as.matrix(trainPlot)
 
 # tokenize
 BiGramTokenizer <- function(x) 
@@ -213,23 +211,63 @@ trainDTMt <- DocumentTermMatrix(trainDocs,
                                                tokenize = TriGramTokenizer))
 trainCSt  <- colSums(inspect(removeSparseTerms(trainDTMt, 0.999)))
 
+# biGrams plot
 trainPlot <- head(sort(trainCSb, decreasing = TRUE),50)
-
 plot(trainPlot,
-     xlab = "Trigrams",
+     xlab = "Bigrams",
      ylab = "Frequency in 100k-line sample")
 text(1:length(trainPlot), 
      trainPlot, names(trainPlot), cex=0.6, pos=4, col="blue")
-
 as.matrix(trainPlot)
 
+# triGrams plot
 trainPlot <- head(sort(trainCSt, decreasing = TRUE),50)
-
 plot(trainPlot[-1],
      xlab = "Trigrams",
      ylab = "Frequency in 100k-line sample")
 text(1:length(trainPlot[-1]), 
      trainPlot[-1], names(trainPlot[-1]), cex=0.6, pos=4, col="blue")
-
 as.matrix(trainPlot)
 
+# other exploratory
+for (i in 1:20) {
+        x[i] <- names(trainCSw)[i]
+        y[i] <- length(grep(names(trainCSw)[i], 
+                         dimnames(as.matrix(trainCSb))[[1]]))
+}
+print(data.frame(x,y))
+
+# QUESTIONS TO CONSIDER
+#
+# 1. Some words are more frequent than others - what are the distributions of word frequencies? 
+# 2. What are the frequencies of 2-grams and 3-grams in the dataset? 
+# 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
+# 4. How do you evaluate how many of the words come from foreign languages? 
+# 5. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
+
+# ANSWERS
+# 1. see plots before
+# 2. see plots and tables before from the sampled data
+# 3. a little over 200 based on the sample beneath
+set.seed(42)
+trainDTMall <- DocumentTermMatrix(sample(trainDocs,10000),
+                                  control = list(removePunctuation = TRUE,
+                                                 removeNumbers = TRUE))
+trainCSall <- colSums(inspect(trainDTMall))
+trainCSall <- as.data.frame(sort(trainCSall, decreasing = TRUE))
+names(trainCSall) <- "count"
+
+trainCSall$cumulative <- 0
+trainCSall$cumulative[1] <- trainCSall$count[1]
+for (i in 2:length(trainCSall$count)) {
+        trainCSall$cumulative[i] <- 
+                trainCSall$cumulative[i-1] + trainCSall$count[i]
+}
+for (i in 1:length(trainCSall$count)) {
+        trainCSall$cumShare[i] <-
+                trainCSall$cumulative[i] / sum(trainCSall$count)
+}
+trainCSall[210:220,]
+
+# 4. I could check sparse words against the other word sources, though if a foreign word is used frequently I might still want to include it in my prediction algorithm.
+# 5. Some words occur often in many different combinations, while others that occur fewer times in total only occur in a few combinations. In terms of space use one would prefer to include the latter words to cover as many phrases as possible.
