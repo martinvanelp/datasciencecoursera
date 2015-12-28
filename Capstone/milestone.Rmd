@@ -1,0 +1,233 @@
+---
+title: "Capstone - Milestone report"
+author: "martinvanelp"
+date: "december 2015"
+output: html_document
+---
+
+# Abstract
+
+
+# Downloading and loading the data
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# quick fix
+setwd("C:/Users/Martin/Box Sync/Programming/GitHub/datasciencecoursera/Capstone")
+
+# 1. Demonstrate that you've downloaded the data and have successfully loaded it in.
+if (!file.exists("data")) { dir.create("data") }
+if (!file.exists("data/Coursera-SwiftKey.zip")) {
+        fileUrl <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+        download.file(fileUrl, destfile = "data/Coursera-SwiftKey.zip")
+}
+if (!file.exists("final")) { 
+        unzip("data/Coursera-SwiftKey.zip")
+}
+
+library(dplyr)
+library(tm)
+library(caret)
+library(SnowballC)
+library(rJava)
+library(RWeka)
+library(knitr)
+
+# constants
+language <- "en_US"
+lang_S   <- strsplit(language, split = "_")[[1]][1]
+
+# Profanity word list
+#      sources for profanity word list:
+#      - https://gist.github.com/ryanlewis/a37739d710ccdb4b406d
+con <- file("profanity.txt", open = "r")
+profanity <- readLines(con)
+close(con)
+
+# load all documents for a language, workaround
+con <- file(paste(getwd(), "/final/", language, 
+                  "/", language, ".blogs.txt", sep = ""), open = "r")
+blogs <- readLines(con)
+Encoding(blogs) <- "UTF-8"
+close(con)
+
+con <- file(paste(getwd(), "/final/", language, 
+                  "/", language, ".news.txt", sep = ""), open = "rb")
+news <- readLines(con)
+Encoding(news) <- "UTF-8"
+close(con)
+
+con <- file(paste(getwd(), "/final/", language, 
+                  "/", language, ".twitter.txt", sep = ""), open = "r")
+twitter <- readLines(con)
+close(con)
+
+# turn data into corpus
+nL <- 10000
+
+set.seed(1234)
+blgVS   <- VectorSource(sample(blogs, nL))
+blgDocs <- Corpus(blgVS, readerControl = list(reader = readPlain, 
+                                              language = lang_S, 
+                                              load = TRUE))
+set.seed(1234)
+nwsVS   <- VectorSource(sample(news, nL))
+nwsDocs <- Corpus(nwsVS, readerControl = list(reader = readPlain, 
+                                              language = lang_S, 
+                                              load = TRUE))
+
+set.seed(1234)
+twtVS   <- VectorSource(sample(twitter, nL))
+twtDocs <- Corpus(twtVS, readerControl = list(reader = readPlain, 
+                                              language = lang_S, 
+                                              load = TRUE))
+
+# remove profanity, and for that convert to lower case
+cleanup <- function(x) { x <- tm_map(x, content_transformer(tolower));
+                         x <- tm_map(x, removeWords, profanity);
+                         return(x) }
+
+blgDocs <- cleanup(blgDocs)
+nwsDocs <- cleanup(nwsDocs)
+twtDocs <- cleanup(twtDocs)
+
+# longest line
+lline <- function(x) { Nchar <- lapply(x, nchar);
+                       NcharM <- as.numeric(Nchar);
+                       NcharM <- sort(NcharM, decreasing=TRUE);
+                       return(NcharM)
+}
+
+docLength  <- rbind(length(blogs), length(news), length(twitter))
+lblogs <- lline(blogs); lnews <- lline(news); ltwitter <- lline(twitter) 
+docLongest <- rbind(head(lblogs,1), 
+                    head(lnews,1),
+                    head(ltwitter,1))
+docAVGlong <- rbind(round(mean(lblogs),1), 
+                    round(mean(lnews),1),
+                    round(mean(ltwitter),1))
+
+docStats <- data.frame(Lines = docLength, 
+                       MeanLength = docAVGlong, 
+                       LongestLine = docLongest,
+                       row.names = c("blogs", "news", "twitter"))
+
+kable(docStats)
+
+hist(ltwitter)
+```
+
+# Statistics and findings
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# 2. Create a basic report of summary statistics about the data sets.
+# 3. Report any interesting findings that you amassed so far.
+
+# tokenize functions
+BiGramTokenizer <- function(x) 
+        unlist(lapply(ngrams(words(x), 2), 
+                      paste, collapse = " "), use.names = FALSE)
+TriGramTokenizer <- function(x) 
+        unlist(lapply(ngrams(words(x), 3), 
+                      paste, collapse = " "), use.names = FALSE)
+
+# explore
+explore <- function(x) {
+        # unigrams
+        DTM  <- DocumentTermMatrix(x, 
+                        control = list(removePunctuation = TRUE))
+        sink("NUL")
+        CS   <- colSums(inspect(removeSparseTerms(DTM, 0.995)))
+        sink()
+        CSw  <- sort(CS[!(names(CS) %in% stopwords("en"))], 
+                     decreasing = TRUE)
+        
+        frequency <- head(CSw,25)
+        plot(frequency,
+        xlab = "Single words (excluding \"stopwords\")",
+        ylab = "Frequency in 10k-line sample")
+        text(1:length(frequency), 
+             frequency, names(frequency), cex=0.6, pos=4, col="blue")
+        print(as.data.frame(frequency))
+
+        # bigrams
+        DTMb <- DocumentTermMatrix(x, 
+                                control = list(removePunctuation = TRUE,
+                                               tokenize = BiGramTokenizer))
+        sink("NUL")
+        CSb  <- colSums(inspect(removeSparseTerms(DTMb, 0.999)))
+        sink()
+        
+        frequency <- head(sort(CSb, decreasing = TRUE),25)
+        plot(frequency,
+             xlab = "Bigrams",
+             ylab = "Frequency in 10k-line sample")
+        text(1:length(frequency), 
+             frequency, names(frequency), cex=0.6, pos=4, col="blue")
+        print(as.data.frame(frequency))
+        
+        # trigrams
+        DTMt <- DocumentTermMatrix(x, 
+                          control = list(removePunctuation = TRUE,
+                                         tokenize = TriGramTokenizer))
+        sink("NUL")
+        CSt  <- colSums(inspect(removeSparseTerms(DTMt, 0.999)))
+        sink()        
+        frequency <- head(sort(CSt, decreasing = TRUE),25)
+        plot(frequency,
+             xlab = "Trigrams",
+             ylab = "Frequency in 10k-line sample")
+        text(1:length(frequency), 
+             frequency, names(frequency), cex=0.6, pos=4, col="blue")
+        print(as.data.frame(frequency))
+}
+```
+
+## Explore blogs
+```{r, echo=FALSE, message=FALSE}
+explore(blgDocs)
+```
+
+## Explore news
+```{r, echo=FALSE, message=FALSE}
+explore(nwsDocs)
+```
+
+## Explore twitter
+```{r, echo=FALSE, message=FALSE}
+explore(twtDocs)
+```
+
+In the twitter data I also explored how many unique words are needed to have 50% of all word instances in "twitter" language. Given the table beneath this is about two hundred, based on the aforementioned sample.
+
+```{r, echo=FALSE}
+# 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
+
+DTMall <- DocumentTermMatrix(twtDocs,
+                             control = list(removePunctuation = TRUE,
+                                            removeNumbers = TRUE))
+sink("NUL"); CSall <- colSums(inspect(DTMall)); sink()
+CSall <- as.data.frame(sort(CSall, decreasing = TRUE))
+names(CSall) <- "count"
+
+CSall$cumulative <- 0
+CSall$cumulative[1] <- CSall$count[1]
+for (i in 2:length(CSall$count)) {
+        CSall$cumulative[i] <- 
+                CSall$cumulative[i-1] + CSall$count[i]
+}
+for (i in 1:length(CSall$count)) {
+        CSall$cumShare[i] <-
+                CSall$cumulative[i] / sum(CSall$count)
+}
+CSall[200:220,]
+```
+
+# Plan for prediction
+```{r, echo=FALSE}
+# 4. Get feedback on your plans for creating a prediction algorithm and Shiny app. 
+```
+Right now I am split between two options to build my prediction model:
+
+1. build on top of the present analysis based in the tm-package, using the way that package tokenizes my data as predictors.
+2. tokenize the data with a self-made method so I get more control of what tokens are created and what information is eventually available as predictors.
+
+Clear from the exploratoy ranalysis is at least that in neither case many words/ngrams are needed to get some reasonable predictions.
