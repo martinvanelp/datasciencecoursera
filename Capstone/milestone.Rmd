@@ -6,9 +6,13 @@ output: html_document
 ---
 
 # Abstract
-
+The data sets for the Capstone project have been analysed, mostly with help of the tm-package. The general conclusion is that with rather few words, or groups of words, in a dictionary one can cover large parts of the written language in these data sets. More specifically, about 200 words can cover 50% of the words used in tweets according to this analysis. Lastly, I am pondering whether I should continue on this path, with the tm-package, or make my own, more slim, approach to the Capstone challenge.
 
 # Downloading and loading the data
+The table beneath shows some statistics on the different data sets for the English language. In the code it is possible to easily replace "en_US" with another available language. Using the tm-package I have been able to filter for profanity, based on https://gist.github.com/ryanlewis/a37739d710ccdb4b406d. The tm-package does create bulky data with its functions, which means I have only been able to analyze samples of each data set (n = 10000).
+
+The histogram after the table shows that there actually is data on every separate document in the data sets: the histogram shows the frequency of the length of tweets, being rather uniformly distributed.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # quick fix
 setwd("C:/Users/Martin/Box Sync/Programming/GitHub/datasciencecoursera/Capstone")
@@ -116,6 +120,9 @@ hist(ltwitter)
 ```
 
 # Statistics and findings
+Beneath are figures and tables for each data set (blogs, news, and twitter) for unigrams, bigrams and trigrams. For the unigrams the data sets have been cleaned for stopwords (frequent words like "is", "the", "and").
+
+The general conclusion based on the analyses of each data set is that rather few words are very common and that frequency of words quickly drops. Moreover, although there are differences many words are common in the blogs, news and twitter data sets. 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # 2. Create a basic report of summary statistics about the data sets.
@@ -196,7 +203,8 @@ explore(nwsDocs)
 explore(twtDocs)
 ```
 
-In the twitter data I also explored how many unique words are needed to have 50% of all word instances in "twitter" language. Given the table beneath this is about two hundred, based on the aforementioned sample.
+## Explore desirable dictionary size
+In the twitter data I also explored how many unique words are needed to have 50% of all word instances in "twitter" language. Given the table beneath this is a little over two hundred, based on the aforementioned sample.
 
 ```{r, echo=FALSE}
 # 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
@@ -218,7 +226,7 @@ for (i in 1:length(CSall$count)) {
         CSall$cumShare[i] <-
                 CSall$cumulative[i] / sum(CSall$count)
 }
-CSall[200:220,]
+cbind(rank = 200:220,CSall[200:220,])
 ```
 
 # Plan for prediction
@@ -228,6 +236,6 @@ CSall[200:220,]
 Right now I am split between two options to build my prediction model:
 
 1. build on top of the present analysis based in the tm-package, using the way that package tokenizes my data as predictors.
-2. tokenize the data with a self-made method so I get more control of what tokens are created and what information is eventually available as predictors.
+2. tokenize the data with a self-made method so I get more control of how tokens are created and what information is eventually available as predictors; I have some ideas on storing words as numbers and then using those numbers for a compact data set for prediction.
 
-Clear from the exploratoy ranalysis is at least that in neither case many words/ngrams are needed to get some reasonable predictions.
+Clear from the exploratoy ranalysis is at least that in neither case many words/ngrams are needed to get some reasonable predictions. In favor of option 1 is that I already have some data cleaning and analysis set up. In favor of option 2 is that I can potentially create something without the tm-package that is less burdensome, and does not force me to use samples of data sets as above.
