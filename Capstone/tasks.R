@@ -271,3 +271,109 @@ trainCSall[210:220,]
 
 # 4. I could check sparse words against the other word sources, though if a foreign word is used frequently I might still want to include it in my prediction algorithm.
 # 5. Some words occur often in many different combinations, while others that occur fewer times in total only occur in a few combinations. In terms of space use one would prefer to include the latter words to cover as many phrases as possible.
+
+##############
+##          ##
+##  QUIZ 2  ##
+##          ##
+##############
+
+library(dplyr)
+library(tm)
+library(caret)
+library(SnowballC)
+library(rJava)
+library(RWeka)
+
+language <- "en_US"
+lang_S   <- strsplit(language, split = "_")[[1]][1]
+
+# Profanity word list
+#      sources for profanity word list:
+#      - https://gist.github.com/ryanlewis/a37739d710ccdb4b406d
+con <- file("profanity.txt", open = "r")
+profanity <- readLines(con)
+close(con)
+
+document <- ".twitter.txt"
+con <- file(paste(getwd(), "/final/", language, 
+                  "/", language, document, sep = ""), open = "r")
+twitter <- readLines(con)
+close(con)
+
+# turn data into corpus
+nL <- 100000
+
+set.seed(1234)
+twtVS   <- VectorSource(sample(twitter, nL))
+twtDocs <- Corpus(twtVS, readerControl = list(reader = readPlain, 
+                                              language = lang_S, 
+                                              load = TRUE))
+
+# remove profanity, and for that convert to lower case
+cleanup <- function(x) { x <- tm_map(x, content_transformer(tolower));
+x <- tm_map(x, removeWords, profanity);
+return(x) }
+
+twtDocs <- cleanup(twtDocs)
+
+x <- twtDocs
+
+# tokenize functions
+BiGramTokenizer <- function(x) 
+        unlist(lapply(ngrams(words(x), 2), 
+                      paste, collapse = " "), use.names = FALSE)
+TriGramTokenizer <- function(x) 
+        unlist(lapply(ngrams(words(x), 3), 
+                      paste, collapse = " "), use.names = FALSE)
+
+# unigrams
+DTM  <- DocumentTermMatrix(x, 
+                           control = list(removePunctuation = TRUE,
+                                          stopwords = TRUE,
+                                          removeNumbers = TRUE))
+
+# bigrams
+DTMb <- DocumentTermMatrix(x, 
+                           control = list(removePunctuation = TRUE,
+                                          stopwords = TRUE,
+                                          removeNumbers = TRUE,
+                                          tokenize = BiGramTokenizer))
+
+# trigrams
+DTMt <- DocumentTermMatrix(x, 
+                           control = list(removePunctuation = TRUE,
+                                          stopwords = TRUE,
+                                          removeNumbers = TRUE,
+                                          tokenize = TriGramTokenizer))
+
+# inputs 1
+unigram <- c("case", "bouquet", "bacon")
+bigram <- "case of"
+trigram <- "a case of"
+
+# inputs 2
+unigram <- c("please", "would", "mean")
+bigram <- "would mean"
+trigram <- "would mean the"
+
+# prediction
+findAssocs(DTM, unigram, 0.3)
+findAssocs(DTMb, bigram, 0.2)
+findAssocs(DTMt, trigram, 0.2)
+
+sink("NUL")
+col <- min(which(DTM$dimnames[[2]] == unigram))
+CS  <- colSums(inspect(DTM[DTM$i > 1,]))
+sink()
+head(sort(CS, decreasing = TRUE),5)
+
+sink("NUL")
+CS   <- colSums(inspect(DTMb[DTMb$dimnames[[2]] == bigram,]))
+sink()
+head(sort(CS, decreasing = TRUE),5)
+
+sink("NUL")
+CS   <- colSums(inspect(DTMt[DTMt$dimnames[[2]] == trigram,]))
+sink()
+head(sort(CS, decreasing = TRUE),5)
