@@ -6,6 +6,7 @@ library(tm)
 library(NLP)
 library(openNLP)
 library(dplyr)
+library(data.table)
 
 # constants
 language <- "en_US"
@@ -46,7 +47,9 @@ sent_token_annotator <- Maxent_Sent_Token_Annotator()
 sentences <- list()
 
 # detect sentences in library and store
+print("Store sentences")
 for(i in 1:length(lib)) {
+  print(Sys.time())
         d <- as.String(lib[i])                  # convert
         
         a <- annotate(d, sent_token_annotator)  # detect sentences
@@ -61,6 +64,8 @@ for(i in 1:length(lib)) {
                         sentences[x+1] <- d[a][j]
                 }
         }
+  print("Sentences stored")
+  print(Sys.time())
 }
 
 saveSent <- function() {
@@ -69,35 +74,56 @@ saveSent <- function() {
         save(sentences, file = con)
         close(con)
         
-        # load dictionary
+        # load sentences
         con <- file(paste(getwd(), "/sentences.Rdata", sep = ""), open = "rb")
         load(file = con)
         close(con)
 }
 
-set.seed(123)
-sentences <- sample(sentences, 1000)
+# # sample sentences
+# set.seed(123)
+# sentences <- sample(sentences, 100000)
+
+# # TOLSTOY
+# tolstoyDoc <- function() {
+#   con <- file(paste(getwd(), "/tolstoy.txt", sep = ""), open = "rb")
+#   text <- readLines(con)
+#   close(con)
+#   
+#   return(text)
+# }
+# 
+# sentences <- tolstoyDoc()
 
 # remove capitals, punctuation, stopwords & profanity and white space
 cleanup <- function(x) {
-        x <- tolower(x)
-        x <- gsub("[[:punct:]]", "", x)
-        x <- gsub(paste(profanity,collapse="|"), " ", x)
+        print("Cleanup:")
+        x <- tolower(x); print("- Lowered")
+        x <- gsub("[[:punct:]]", "", x); print("- Depunctuated")
+        x <- gsub(paste(profanity,collapse="|"), " ", x); print("- Unprofaned")
         # x <- gsub(paste(stopwords(),collapse=" | "), " ", x) # something wrong
-        x <- trimws(x)
-        
+        x <- trimws(x); print("- Dewhitespaced")
         return(x)
 }
         
 sentences <- cleanup(sentences)
 
+saveClSent <- function() {
+        # save sentences
+        con <- file(paste(getwd(), "/cleanSentences.Rdata", sep = ""), open = "wb")
+        save(sentences, file = con)
+        close(con)
+        
+        # load sentences
+        con <- file(paste(getwd(), "/cleanSentences.Rdata", sep = ""), open = "rb")
+        load(file = con)
+        close(con)
+}
+
 # split sentences into words
 sentSplit <- strsplit(sentences, " ")
 
 # DICTIONARY
-
-dictionary <- data.frame(i1 = "", i2 = "", i3 = "", pred = "",
-                         stringsAsFactors = FALSE)
 
 dictionize <- function(s) {
         dict <- data.frame(i1 = "", i2 = "", i3 = "", pred = "",
@@ -134,18 +160,69 @@ dictionize <- function(s) {
         
 }
 
-for(i in 1:length(sentSplit)) {
-        dictionary <- rbind(dictionary, dictionize(sentSplit[[i]]))
+# dictionize <- function(s) {
+#   dict.list <- vector('list', length(s))
+# 
+#   for(i in length(s):1) {
+#     i1   <- s[i-3]
+#     i2   <- s[i-2]
+#     i3   <- s[i-1]
+#     pred <- s[i]
+#     
+#     if(i > 3) {
+#       dict.list[[i]] <- data.frame(i1=i1, i2=i2, i3=i3, pred=pred, stringsAsFactors = FALSE)
+#     }
+#     else if(i > 2) {
+#       dict.list[[i]] <- data.frame(i1="", i2=i2, i3=i3, pred=pred, stringsAsFactors = FALSE)
+#     }
+#     else if(i > 1) {
+#       dict.list[[i]] <- data.frame(i1="", i2="", i3=i3, pred=pred, stringsAsFactors = FALSE)
+#     }
+#     else if(i > 0) {
+#       dict.list[[i]] <- data.frame(i1="", i2="", i3="", pred=pred, stringsAsFactors = FALSE)
+#     }
+#     
+#   }
+#   
+#   dict.df <- data.frame(rbindlist(dict.list))
+#   return(dict.df)
+# }
+
+makeDict <- function(s) { 
+        dict.list <- vector('list', length(s))
+        
+        j <- 1000
+        print(Sys.time())
+        
+        for(i in 1:length(s)) {
+                dict.list[[i]] <- dictionize(s[[i]])
+                
+                # progress bar
+                if(i == j) {
+                        print(i)
+                        print(Sys.time())
+                        flush.console() # update GUI console
+                        j <- j + 1000
+                }
+        }
+        
+        print(i)
+        print(Sys.time())
+    
+        print("Combine sentence dictionaries")
+        dict.df <- data.frame(rbindlist(dict.list))
+        
+        print(Sys.time())
+        
+        return(dict.df)
 }
 
-# make rows unique in dictionary
-gDict <- group_by(dictionary, i1, i2, i3, pred)
-uDict <- arrange(summarise(gDict, count = n()), desc(count))
+dictionary <- makeDict(sentSplit)
 
 saveDict <- function() {
         # save dictionary
         con <- file(paste(getwd(), "/dictionary.Rdata", sep = ""), open = "wb")
-        save(uDict, file = con)
+        save(dictionary, file = con)
         close(con)
         
         # load dictionary
@@ -154,28 +231,81 @@ saveDict <- function() {
         close(con)
 }
 
+# make rows unique in dictionary
+gDict <- group_by(dictionary, i1, i2, i3, pred)
+uDict <- ungroup( 
+        filter(
+        arrange(summarise(gDict, count = n()), desc(count)),
+        count > 1, pred != "")
+        )
+
+saveUdict <- function() {
+        # save dictionary
+        con <- file(paste(getwd(), "/uDict.Rdata", sep = ""), open = "wb")
+        save(uDict, file = con)
+        close(con)
+        
+        # load dictionary
+        con <- file(paste(getwd(), "/uDict.Rdata", sep = ""), open = "rb")
+        load(file = con)
+        close(con)
+}
+
 # PREDICTION
 
-# experiment
-t <- "The guy in front of me just bought a pound of bacon, a bouquet, and a case of"
-t <- cleanup(t)
+predict <- function(dict, w1, w2, w3, n = 45) {
+  x <- character()
+  x <-      {dict %>% filter(i1 == w1, i2 == w2, i3 == w3) %>%
+               arrange(desc(count)) %>% head(15)}$pred
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% filter(          i2 == w2, i3 == w3) %>%
+               arrange(desc(count)) %>% head(6)}$pred)
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% filter(i1 == w1,           i3 == w3) %>% 
+               arrange(desc(count)) %>% head(6)}$pred)
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% filter(                    i3 == w3) %>% 
+               arrange(desc(count)) %>% head(6)}$pred)
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% filter(i1 == w1, i2 == w2          ) %>% 
+               arrange(desc(count)) %>% head(3)}$pred)
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% filter(          i2 == w2          ) %>% 
+               arrange(desc(count)) %>% head(3)}$pred)
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% filter(i1 == w1                    ) %>% 
+               arrange(desc(count)) %>% head(3)}$pred)
+  x <- unique(x); if(length(x) >= n) { return(x[1:n]) }
+  x <- c(x, {dict %>% 
+               arrange(desc(count)) %>% head(3)}$pred)
+  
+  x <- unique(x); return(x[1:n])
+}
 
+# # TOLSTOY
+# tolstoy <- "The world would be better did such a"
+
+# quiz 2
+q1 <- "The guy in front of me just bought a pound of bacon, a bouquet, and a case of"
+q2 <- "You're the reason why I smile everyday. Can you follow me please? It would mean the"
+q3 <- "Hey sunshine, can you follow me and make me the"
+q4 <- "Very early observations on the Bills game: Offense still struggling but the"
+q5 <- "Go on a romantic date at the"
+q6 <- "Well I'm pretty sure my granny has some old bagpipes in her garage I'll dust them off and be on my"
+q7 <- "Ohhhhh #PointBreak is on tomorrow. Love that film and haven't seen it in quite some"
+q8 <- "After the ice bucket challenge Louis will push his long wet hair out of his eyes with his little"
+q9 <- "Be grateful for the good times and keep the faith during the"
+q10 <- "If this isn't the cutest thing you've ever seen, then you must be"
+
+t <- cleanup(q2)
 tSplit <- strsplit(t, " ")
 
 u <- 0
-
 w3 <- tSplit[[1]][length(tSplit[[1]])-u]
 w2 <- tSplit[[1]][length(tSplit[[1]])-u-1]
 w1 <- tSplit[[1]][length(tSplit[[1]])-u-2]
 
-filter(uDict, i1 == w1, i2 == w2, i3 == w3)$pred[1]
-filter(uDict,           i2 == w2, i3 == w3)$pred[1]
-filter(uDict, i1 == w1,           i3 == w3)$pred[1]
-filter(uDict, i1 == w1, i2 == w2          )$pred[1]
-filter(uDict,                     i3 == w3)$pred[1]
-filter(uDict,           i2 == w2          )$pred[1]
-filter(uDict, i1 == w1                    )$pred[1]
-filter(uDict                              )$pred[1]
+predict(uDict, w1, w2, w3, 30)
 
 # numerization is for later
 for (i in 1:length(strSp)) {
