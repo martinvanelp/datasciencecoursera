@@ -63,6 +63,21 @@ for(i in 1:length(lib)) {
         }
 }
 
+saveSent <- function() {
+        # save sentences
+        con <- file(paste(getwd(), "/sentences.Rdata", sep = ""), open = "wb")
+        save(sentences, file = con)
+        close(con)
+        
+        # load dictionary
+        con <- file(paste(getwd(), "/sentences.Rdata", sep = ""), open = "rb")
+        load(file = con)
+        close(con)
+}
+
+set.seed(123)
+sentences <- sample(sentences, 1000)
+
 # remove capitals, punctuation, stopwords & profanity and white space
 cleanup <- function(x) {
         x <- tolower(x)
@@ -100,26 +115,16 @@ dictionize <- function(s) {
                 
                 if(y > 3) {
                         dict[d+1,] <- c(i1, i2, i3, pred)
-                        dict[d+2,] <- c("", i2, i3, pred)
-                        dict[d+3,] <- c(i1, "", i3, pred)
-                        dict[d+4,] <- c(i1, i2, "", pred)
-                        dict[d+5,] <- c("", "", i3, pred)
-                        dict[d+6,] <- c("", i2, "", pred)
-                        dict[d+7,] <- c(i1, "", "", pred)
-                        dict[d+8,] <- c("", "", "", pred)
                 }
                 else if(y > 2) {
                         dict[d+1,] <- c("", i2, i3, pred)
-                        dict[d+2,] <- c("", "", i3, pred)
-                        dict[d+3,] <- c("", i2, "", pred)
-                        dict[d+4,] <- c("", "", "", pred)
+
                 }
                 else if(y > 1) {
                         dict[d+1,] <- c("", "", i3, pred)
-                        dict[d+2,] <- c("", "", "", pred)
                 }
                 else if(y > 0) {
-                        dict[d+1,] <- c("", "", "", pred)
+                        dict[d,]   <- c("", "", "", pred)
                 }
                 
                 y <- y - 1
@@ -137,15 +142,17 @@ for(i in 1:length(sentSplit)) {
 gDict <- group_by(dictionary, i1, i2, i3, pred)
 uDict <- arrange(summarise(gDict, count = n()), desc(count))
 
-# save dictionary
-con <- file(paste(getwd(), "/dictionary.Rdata", sep = ""), open = "wb")
-save(uDict, file = con)
-close(con)
-
-# load dictionary
-con <- file(paste(getwd(), "/dictionary.Rdata", sep = ""), open = "rb")
-load(file = con)
-close(con)
+saveDict <- function() {
+        # save dictionary
+        con <- file(paste(getwd(), "/dictionary.Rdata", sep = ""), open = "wb")
+        save(uDict, file = con)
+        close(con)
+        
+        # load dictionary
+        con <- file(paste(getwd(), "/dictionary.Rdata", sep = ""), open = "rb")
+        load(file = con)
+        close(con)
+}
 
 # PREDICTION
 
@@ -162,13 +169,13 @@ w2 <- tSplit[[1]][length(tSplit[[1]])-u-1]
 w1 <- tSplit[[1]][length(tSplit[[1]])-u-2]
 
 filter(uDict, i1 == w1, i2 == w2, i3 == w3)$pred[1]
-filter(uDict, i1 == "", i2 == w2, i3 == w3)$pred[1]
-filter(uDict, i1 == w1, i2 == "", i3 == w3)$pred[1]
-filter(uDict, i1 == w1, i2 == w2, i3 == "")$pred[1]
-filter(uDict, i1 == "", i2 == "", i3 == w3)$pred[1]
-filter(uDict, i1 == "", i2 == w2, i3 == "")$pred[1]
-filter(uDict, i1 == w1, i2 == "", i3 == "")$pred[1]
-filter(uDict, i1 == "", i2 == "", i3 == "")$pred[1]
+filter(uDict,           i2 == w2, i3 == w3)$pred[1]
+filter(uDict, i1 == w1,           i3 == w3)$pred[1]
+filter(uDict, i1 == w1, i2 == w2          )$pred[1]
+filter(uDict,                     i3 == w3)$pred[1]
+filter(uDict,           i2 == w2          )$pred[1]
+filter(uDict, i1 == w1                    )$pred[1]
+filter(uDict                              )$pred[1]
 
 # numerization is for later
 for (i in 1:length(strSp)) {
