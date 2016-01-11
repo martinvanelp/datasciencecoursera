@@ -33,8 +33,11 @@ loadObj <- function(File) {
 # }
 
 LtoN <- function(Word) {
-        if(Word == "") { return(0) }
+        # catching "errors"
+        if(length(Word) == 0) { return(0) }
+        if(Word == "")        { return(0) }
         
+        # transformation
         lettered   <- strsplit(Word, "")
         numbers    <- match(lettered[[1]], letters)
         numbers[1] <- numbers[1] * 100
@@ -272,11 +275,12 @@ saveObj(twitterD, paste(getwd(), "/output/dictionized/", Sys.Date(),
                         ".twitter.Rdata", sep = ""))
 
 # load block
-File <- paste(getwd(), "/output/dictionized/", Sys.Date(),".blogs.Rdata", sep = "")
+date <- "2016-01-05"
+File <- paste(getwd(), "/output/dictionized/", date,".blogs.Rdata", sep = "")
 load(File); blogsD <- object; object <- 0
-File <- paste(getwd(), "/output/dictionized/", Sys.Date(),".news.Rdata", sep = "")
+File <- paste(getwd(), "/output/dictionized/", date,".news.Rdata", sep = "")
 load(File); newsD <- object; object <- 0
-File <- paste(getwd(), "/output/dictionized/", Sys.Date(),".twitter.Rdata", sep = "")
+File <- paste(getwd(), "/output/dictionized/", date,".twitter.Rdata", sep = "")
 load(File); twitterD <- object; object <- 0
 
 # make rows unique in dictionary
@@ -286,7 +290,7 @@ gDict <- group_by(dictionary, i1, i2, i3, pred)
 uDict <- ungroup( 
         arrange(
                 filter(summarise(gDict, count = n()),
-                       count > 1, pred != ""),
+                       count > 2, pred != ""),
                 desc(count))
 )
 
