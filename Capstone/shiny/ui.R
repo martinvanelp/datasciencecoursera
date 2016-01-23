@@ -10,7 +10,7 @@ library(shiny)
 shinyUI(fluidPage(
 
   # Application title
-  titlePanel("Text prediction by input"),
+  titlePanel("Word prediction by input"),
 
   # Sidebar with a slider input for number of bins
   sidebarLayout(
