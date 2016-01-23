@@ -8,3 +8,5 @@ Developing_Data_Products/project/DDP_project_deck/.cache/__packages
 *.txt
 Capstone/data/Coursera-SwiftKey.zip
 *.txt
+Capstone/shiny/.Rproj.user/*
+*.dcf
